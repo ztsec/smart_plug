@@ -1,9 +1,9 @@
-from smart import *
-import time
-from datetime import datetime
 import logging
-from smart.type import AccountType
+
+from smart import *
+
 logger = logging.getLogger()
+
 
 def init():
     # #接收委托推送 
@@ -15,37 +15,64 @@ def init():
     #     logger.debug("get on_trade: %s",smart.utils.toString(order))
     # smart.current_account.on_trade(callback2)
 
-    # def callback3(assets):
-    #     logger.debug("get on_assets: %s",smart.utils.toString(assets))
-    # smart.current_account.on_assets(callback3)
+    def callback3(assets):
+        logger.debug("get on_assets: %s", smart.utils.toString(assets))
+
+    smart.current_account.on_assets(callback3)
 
     # def callback4(position):
     #     logger.debug("get on_position: %s",smart.utils.toString(position))
     # smart.current_account.on_position(callback4)
 
-    def timeCallback():
-        logger.info("timer is invoked.")
-        smart.callJSFunction("sendMsgOverJs",{"strategy_id":"gridtrading0519","strategy_param":{"key1":"123","key2":"456"}})
-    
-    #设定1000ms（1秒）的定时
-    #smart.add_time_interval( 1000 , timeCallback )
-    smart.add_timer( 1000 , timeCallback )
+    # def timeCallback():
+    #     logger.info("timer is invoked.")
+    #     smart.callJSFunction("sendMsgOverJs",{"strategy_id":"Duplex","strategy_param":{"key1":"123","key2":"456"}})
+
+    # #设定1000ms（1秒）的定时
+    # #smart.add_time_interval( 1000 , timeCallback )
+    # smart.add_timer( 5000 , timeCallback )
     logger.info("init finished.")
 
-    
-    def receiveServerMsg_py(data):
-        logger.info("receive server msg: %s",smart.utils.toString(data)   )  
-        #logger.info("buy1_amount:%d   sell1_amount:%d ",data["buy1_amount"] , data["sell1_amount"] ) #也可以通过中括号的形式获取某个key的value.
+    def receiveServerMsg_py(payload):
+        logger.info("receive server msg: %s", smart.utils.toString(payload.get("data")))
+        # logger.info("buy1_amount:%d   sell1_amount:%d ",data["buy1_amount"] , data["sell1_amount"] ) #也可以通过中括号的形式获取某个key的value.
+
+    smart.registCallableFunction("receiveServerMsg_py", receiveServerMsg_py)
+
+    # 等待JS环境初始化成功
+    def jsReadyCallback():
+        logger.info("JS ready")
+
         
-    smart.registCallableFunction("receiveServerMsg_py",receiveServerMsg_py)
-    smart.callJSFunction("pyNoticeJsStrategyId",{"strategy_id":"strategy1"})  # strategy1 为功夫端策略的id
+        def pyNoticeJsStrategyIdCallback(errorMsg):
+            logger.info("注册接口结果: %s", smart.utils.toString(errorMsg))
+
+        smart.callJSFunction("pyNoticeJsStrategyId", {"strategy_id": "Duplex1"}, pyNoticeJsStrategyIdCallback)  # strategy1 为功夫端策略的id
+
+        def timeCallback():
+            logger.info("timer is invoked.")
+            smart.callJSFunction("sendMsgOverJs",
+                                 {"strategy_id": "Duplex", "strategy_param": {"key1": "123", "key2": "456"}})
+
+        # 设定1000ms（1秒）的定时
+        smart.add_time_interval(10000, timeCallback)
+
+    smart.add_timer(5000, jsReadyCallback)
+
+    logger.info("init pyNoticeJsStrategyId.")
+
 
 def show():
-   logger.debug("show")
+    logger.debug("show")
+
+
 def hide():
     logger.debug("hide")
+
+
 def close():
     logger.debug("close")
+
 
 smart.on_init(init)
 smart.on_show(show)
